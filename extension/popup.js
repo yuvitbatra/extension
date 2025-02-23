@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const countFileButton = document.getElementById("countFileButton");
         const resultParagraph = document.getElementById("result");
 
-  // Count tokens from textarea
         countButton.addEventListener("click", function () {
         const text = textInput.value;
         if (!text) {
@@ -15,7 +14,6 @@ document.addEventListener("DOMContentLoaded", function () {
         countTokens(text);
         });
 
-  // Count tokens from uploaded file
         countFileButton.addEventListener("click", function () {
         const file = fileInput.files[0];
         if (!file) {
@@ -30,7 +28,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         });
 
-  // Function to count tokens
         function countTokens(text) {
         try {
                 const tokens = GPTTokenizer_cl100k_base.encode(text);
@@ -42,7 +39,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 }
 
-  // Function to extract text from a file
         function extractTextFromFile(file) {
         return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -54,17 +50,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 reject(new Error("Failed to read the file."));
         };
         if (file.type === "application/pdf") {
-        // Handle PDF files
                 extractTextFromPDF(reader.result).then(resolve).catch(reject);
         } else if (file.type === "text/plain") {
-        // Handle plain text files
         reader.readAsText(file);
         } else if (
         file.type ===
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         file.type === "application/msword"
         ) {
-        // Handle Word documents
         extractTextFromWord(file).then(resolve).catch(reject);
         } else {
         reject(new Error("Unsupported file type."));
@@ -72,23 +65,39 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 }
 
-  // Function to extract text from PDF (requires a PDF library)
-        function extractTextFromPDF(data) {
-    // You'll need a library like pdf.js or pdf-lib for this
-    // Example: https://mozilla.github.io/pdf.js/
+function extractTextFromPDF(data) {
         return new Promise((resolve, reject) => {
-      // Placeholder for PDF text extraction logic
-        reject(new Error("PDF text extraction not implemented."));
-        });
+        const loadingTask = pdfjsLib.getDocument({ data });
+        loadingTask.promise.then(pdf => {
+                let text = "";
+                const numPages = pdf.numPages;
+                const pagePromises = [];
+                for (let i = 1; i <= numPages; i++) {
+                        pagePromises.push(pdf.getPage(i).then(page => {
+                        return page.getTextContent().then(textContent => {
+                        text += textContent.items.map(item => item.str).join(" ");
+                });
+        }));
+        }
+                Promise.all(pagePromises).then(() => {
+                        resolve(text);
+                }).catch(reject);
+        }).catch(reject);
+});
 }
 
   // Function to extract text from Word documents (requires a library)
         function extractTextFromWord(file) {
-    // You'll need a library like mammoth.js for this
-    // Example: https://github.com/mwilliamson/mammoth.js
-        return new Promise((resolve, reject) => {
-      // Placeholder for Word text extraction logic
-        reject(new Error("Word document text extraction not implemented."));
-        });
+                return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                const arrayBuffer = event.target.result;
+                mammoth.extractRawText({ arrayBuffer })
+                        .then(result => resolve(result.value))
+                        .catch(reject);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+                });
         }
 });
