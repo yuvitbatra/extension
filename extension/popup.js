@@ -6,13 +6,22 @@ document.addEventListener("DOMContentLoaded", function () {
         const resultParagraph = document.getElementById("result");
         const currentSessionTokensSpan = document.getElementById("currentSessionTokens");
         const lifetimeTokensSpan = document.getElementById("lifetimeTokens");
+        const energyUsageSpan = document.getElementById("totalEnergyUsage");
+        const co2emissions = document.getElementById("totalCO2");
+        const totalwater = document.getElementById("totalwater");
 
         let currentSessionTokens = 0;
         let lifetimeTokens = 0;
+        let co2emissionsnum = 0;
 
         chrome.storage.local.get("lifetimeTokens", function (data) {
         if (data.lifetimeTokens) {
                 lifetimeTokens = data.lifetimeTokens;
+                energyUsageSpan.textContent = lifetimeTokens * 4 +" J";
+                // co2 emmissions = energy in Kwh * avg world carbon intensity
+                co2emissionsnum = ((lifetimeTokens * 4 * 475)/3600000).toExponential(2);
+                co2emissions.textContent = co2emissionsnum + " g of Co2";
+                totalwater.textContent = (lifetimeTokens * 0.67).toFixed(2) + " ml"
                 lifetimeTokensSpan.textContent = lifetimeTokens;
         }
         });
@@ -20,6 +29,12 @@ document.addEventListener("DOMContentLoaded", function () {
         function updateTokenUsage() {
                 currentSessionTokensSpan.textContent = currentSessionTokens;
                 lifetimeTokensSpan.textContent = lifetimeTokens;
+
+                const totalEnergyUsage = lifetimeTokens * 4;
+                totalwater.textContent = (lifetimeTokens * 0.67).toFixed(2) + " ml"
+                document.getElementById("totalEnergyUsage").textContent = totalEnergyUsage + " J";
+                co2emissionsnum = ((lifetimeTokens * 4 * 475)/3600000).toExponential(2);
+                co2emissions.textContent = co2emissionsnum + " g of Co2";
         }
 
         function saveLifetimeTokens() {
@@ -35,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         fileUploadStatus.textContent = "No file selected";
                 }
         });
-        
+
         countButton.addEventListener("click", function () {
                 const text = textInput.value;
                 if (!text) {
@@ -73,7 +88,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                         const tokens = GPTTokenizer_cl100k_base.encode(text);
                         const tokenCount = tokens.length;
-                        resultParagraph.textContent = `Token count: ${tokenCount}`;
+                        const energy = tokenCount * 4;
+                        let co2 = ((energy * 475)/3600000).toExponential(2);
+                        let water = (tokenCount * 0.67).toFixed(2) + " ml"
+                        resultParagraph.textContent = `Token count: ${tokenCount}\nEnergy Used: ${energy} J\nCO2 emmited: ${co2} g of Co2\nWater Wasted: ${water}`;
                         return tokenCount;
                 } catch (error) {
                         console.error("Error counting tokens:", error);
